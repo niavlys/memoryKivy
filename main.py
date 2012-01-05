@@ -1,6 +1,6 @@
 
 import kivy
-kivy.require('1.0.8')
+kivy.require('1.0.9')
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.uix.widget import Widget
