@@ -58,6 +58,9 @@ class MemoryButton(Button):
                         if self.sound.status != 'stop':
                             self.sound.stop()
                         self.sound.play()
+                    self.parent.nbp-=1
+                    if  self.parent.nbp ==0:
+                        print "done"
                     self.background_down,self.background_normal = self.background,self.background
                     self.parent.first.background_down,self.parent.first.background_normal = self.parent.first.background,self.parent.first.background
                     self.done=True
@@ -75,6 +78,8 @@ class MemoryLayout(GridLayout):
         self.state = ""
         self.first=None
         self.level=kwargs["level"]
+        self.nbp=self.cols*2
+        print "zeze",self.nbp
 
     def hideButtons(self):
         for i in self.children:
