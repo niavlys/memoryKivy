@@ -6,16 +6,20 @@ from kivy.clock import Clock
 from kivy.uix.widget import Widget
 from kivy.uix.image import Image
 from kivy.uix.button import Button
+from kivy.uix.popup import Popup
+from kivy.uix.label import Label
 from kivy.uix.togglebutton import ToggleButton
 from kivy.core.audio import SoundLoader
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.floatlayout import FloatLayout
 from kivy.animation import Animation
 from kivy.properties import StringProperty, ObjectProperty,NumericProperty
 from kivy.uix.progressbar import ProgressBar
 from random import choice,shuffle
 from glob import glob
 from os.path import dirname, join, basename
+
 
 class MemoryButton(Button):
     done=False
@@ -58,9 +62,7 @@ class MemoryButton(Button):
                         if self.sound.status != 'stop':
                             self.sound.stop()
                         self.sound.play()
-                    self.parent.nbp-=1
-                    if  self.parent.nbp ==0:
-                        print "done"
+
                     self.background_down,self.background_normal = self.background,self.background
                     self.parent.first.background_down,self.parent.first.background_normal = self.parent.first.background,self.parent.first.background
                     self.done=True
@@ -72,35 +74,51 @@ class MemoryButton(Button):
                      self.parent.first =None
 
 class MemoryLayout(GridLayout):
-    left = NumericProperty(0)
+    left = NumericProperty(0)   #left items to find
+    items = NumericProperty(0)  #total number of items
+    level = NumericProperty(0)  #seconds to count down
+    countdown = NumericProperty(0)
+
     def __init__(self, **kwargs):
         super(MemoryLayout, self).__init__(**kwargs)
         self.state = ""
         self.first=None
         self.level=kwargs["level"]
-        self.nbp=self.cols*2
-        print "zeze",self.nbp
+        self.items=self.cols*2
+        self.countdown= self.level
 
     def hideButtons(self):
         for i in self.children:
             i.background_down,i.background_normal = i.background_normal,i.background_down
         self.state="OK"
 
+    def initialCountdown(self,dt):
+        if self.countdown == -1:
+            Clock.unschedule(self.initialCountdown)
+            self.hideButtons()
+        else:
+            popup=Label(text=str(self.countdown))
+            self.parent.parent.add_widget(popup)
+            Animation(color=(1,1,1,0),font_size=150).start(popup)
+            self.countdown -= 1
 
 class MyPb(ProgressBar):
     def __init__(self, **kwargs):
         super(ProgressBar, self).__init__(**kwargs)
         self.ml = kwargs['ml']
-
-    def updatePB(self,dt):
-        self.value += 10*len(self.ml.children)/2
-        if self.value==self.max:
-            Clock.unschedule(self.updatePB)
-            self.ml.hideButtons()
     
     def foundAnItem(self,instance,value):
         print self.max,self.value
-        self.value -= 100*self.ml.level
+        self.value += 100*self.ml.level
+        if self.value==self.max:
+            print "done!"
+        #popup = Popup(title='Test popup',
+        #              content=Label(text='Hello world'),
+        #              size_hint=(None, None),pos_hint={"x":0.5,"y":0.5}, size=(400, 400),)
+        #popup=Label(text='Hello world')
+        #self.parent.parent.parent.add_widget(popup)
+        #Animation(color=(1,1,1,0),font_size=100).start(popup)
+
 
 def loadData():
     sounds={}
@@ -143,9 +161,14 @@ class MyAnimalsApp(App):
                 )  
             g.add_widget(btn)
 
-        Clock.schedule_interval(pb.updatePB,0.1)
+        #Clock.schedule_interval(pb.updatePB,0.1)
+        
         #return g
-        return root
+        f=FloatLayout()
+        f.add_widget(root)
+        #return root
+        Clock.schedule_interval(g.initialCountdown,1)
+        return f
 
 if __name__ in ('__main__', '__android__'):
     MyAnimalsApp().run()
