@@ -8,6 +8,7 @@ from kivy.uix.image import Image
 from kivy.uix.button import Button
 from kivy.uix.popup import Popup
 from kivy.uix.label import Label
+from kivy.uix.slider import Slider
 from kivy.uix.togglebutton import ToggleButton
 from kivy.core.audio import SoundLoader
 from kivy.uix.gridlayout import GridLayout
@@ -20,6 +21,7 @@ from random import choice,shuffle
 from glob import glob
 from os.path import dirname, join, basename
 
+DEFAULT_SHOWTIME = 10
 
 class MemoryButton(Button):
     done=False
@@ -41,7 +43,7 @@ class MemoryButton(Button):
         if self.background_normal is None:
             self.background_normal=value
             self.background = value
-   
+            
     @classmethod
     def toggleSound(cls,instance):
         instance.text = ["Sound On" if instance.state == 'normal' else "Sound Off"][0]
@@ -57,11 +59,16 @@ class MemoryButton(Button):
                     self.parent.first==None
                 elif self.parent.first.filenameIcon == self.filenameIcon:
                     print "youhou!!"
+                    self.parent.gameOver() #FIXME: for test only
                     self.parent.left+=1
                     if self.playsound:
                         if self.sound.status != 'stop':
                             self.sound.stop()
                         self.sound.play()
+                    #check termination
+                    if self.parent.left == self.parent.items:
+                        self.parent.gameOver()
+                        Clock.unschedule(self.parent.elapsedTime)
 
                     self.background_down,self.background_normal = self.background,self.background
                     self.parent.first.background_down,self.parent.first.background_normal = self.parent.first.background,self.parent.first.background
@@ -70,14 +77,17 @@ class MemoryButton(Button):
                     self.parent.first = None
                     
                 else:
-                     self.parent.first.background_down,self.parent.first.background_normal = self.parent.first.background_normal,self.parent.first.background_down
-                     self.parent.first =None
+                    self.parent.missed += 1
+                    self.parent.first.background_down,self.parent.first.background_normal = self.parent.first.background_normal,self.parent.first.background_down
+                    self.parent.first =None
 
 class MemoryLayout(GridLayout):
     left = NumericProperty(0)   #left items to find
     items = NumericProperty(0)  #total number of items
     level = NumericProperty(0)  #seconds to count down
     countdown = NumericProperty(0)
+    missed = NumericProperty(0) # number of missed items
+    elapsed = NumericProperty(0)
 
     def __init__(self, **kwargs):
         super(MemoryLayout, self).__init__(**kwargs)
@@ -92,15 +102,57 @@ class MemoryLayout(GridLayout):
             i.background_down,i.background_normal = i.background_normal,i.background_down
         self.state="OK"
 
+    def elapsedTime(self,dt):
+        self.elapsed += dt
+        
     def initialCountdown(self,dt):
         if self.countdown == -1:
             Clock.unschedule(self.initialCountdown)
             self.hideButtons()
+            Clock.schedule_interval(self.elapsedTime,0.1)
         else:
             popup=Label(text=str(self.countdown))
             self.parent.parent.add_widget(popup)
             Animation(color=(1,1,1,0),font_size=150).start(popup)
             self.countdown -= 1
+
+    def gameOver(self):
+        
+        # calculate score
+        score = 100./self.level + 100.*self.items + 100.*self.missed + 100./self.elapsed
+        print "done!",score
+
+        content = BoxLayout(orientation='vertical')
+        content.add_widget(Label(text='score: %d'%int(score)))
+        
+        content.add_widget(Label(text='Initial Show time:'))
+        content.add_widget(Slider(min=0, max=30, value=DEFAULT_SHOWTIME))
+     
+        #TODO: 
+        #content.add_widget(Label(text='Number of items:'))
+        #content.add_widget(Slider(min=0, max=30, value=DEFAULT_SHOWTIME))
+       
+        replay = Button(text='Replay!')
+        credits = Button(text='Credits')
+        action = BoxLayout(orientation='horizontal')
+        action.add_widget(replay)
+        action.add_widget(credits)
+        content.add_widget(action)
+
+
+        popup = PopupGameOver(title='Game Over!',
+                              content=content,
+                              size_hint=(0.5, 0.5),pos_hint={'x':0.25, 'y':0.25},
+                              auto_dismiss=False)
+        replay.bind(on_press=popup.replay)
+        popup.open()
+
+class PopupGameOver(Popup):
+     def replay(self,inst):
+         print self.content,inst
+         self.dismiss()
+
+
 
 class MyPb(ProgressBar):
     def __init__(self, **kwargs):
@@ -108,16 +160,16 @@ class MyPb(ProgressBar):
         self.ml = kwargs['ml']
     
     def foundAnItem(self,instance,value):
-        print self.max,self.value
         self.value += 100*self.ml.level
-        if self.value==self.max:
-            print "done!"
-        #popup = Popup(title='Test popup',
-        #              content=Label(text='Hello world'),
-        #              size_hint=(None, None),pos_hint={"x":0.5,"y":0.5}, size=(400, 400),)
-        #popup=Label(text='Hello world')
-        #self.parent.parent.parent.add_widget(popup)
-        #Animation(color=(1,1,1,0),font_size=100).start(popup)
+
+class LabelScore(Label):
+    def updateTime(self,instance,value):
+        self.text="Time: %0.2f s"%value
+
+class LabelMissed(Label):
+    def update(self,instance,value):
+        self.text="Missed: %d"%value
+
 
 
 def loadData():
@@ -137,19 +189,32 @@ class MyAnimalsApp(App):
 
     def build(self):
         sounds,icons=loadData()
-        show=10
+        show = DEFAULT_SHOWTIME
+
         g = MemoryLayout(cols=len(icons)/2, level=show,size_hint=(1,.9))
-        config = BoxLayout(orientation='horizontal', size_hint=(1,.1))
+        config = BoxLayout(orientation='horizontal',spacing=10, size_hint=(1,.1))
+        
         sound = ToggleButton(text='Sound On', size_hint=(0.1,1))
         sound.bind(on_press=MemoryButton.toggleSound)
-        pb = MyPb(max=len(icons)*100*show, size_hint=(0.9,1),ml=g)
+        pb = MyPb(max=len(icons)*100*show, size_hint=(0.7,1),ml=g)
+        
+        score = LabelScore(text="Time:  0 s",size_hint=(0.1,1))
+        missed =  LabelMissed(text="Missed:  0",size_hint=(0.1,1))
+        
+        
         config.add_widget(pb)
+        config.add_widget(score)
+        config.add_widget(missed)
         config.add_widget(sound)
+        
+        g.bind(missed=missed.update)     
+        g.bind(elapsed=score.updateTime)        
         g.bind(left=pb.foundAnItem)
 
-        root = BoxLayout(orientation='vertical')
-        root.add_widget(g)
-        root.add_widget(config)
+        playZone = BoxLayout(orientation='vertical')
+        playZone.add_widget(g)
+        playZone.add_widget(config)
+        
         icons=icons+icons
         shuffle(icons)
         for i in icons:
@@ -161,14 +226,11 @@ class MyAnimalsApp(App):
                 )  
             g.add_widget(btn)
 
-        #Clock.schedule_interval(pb.updatePB,0.1)
-        
-        #return g
-        f=FloatLayout()
-        f.add_widget(root)
-        #return root
+       
+        root=FloatLayout()
+        root.add_widget(playZone)
         Clock.schedule_interval(g.initialCountdown,1)
-        return f
+        return root
 
 if __name__ in ('__main__', '__android__'):
     MyAnimalsApp().run()
