@@ -252,7 +252,7 @@ class MyAnimalsApp(App):
         playZone.add_widget(config)
         
         icons=icons+icons
-        #shuffle(icons)
+        shuffle(icons)
         for i in icons:
             aSound = choice(sounds[i.split("_")[0].split('/')[1]])
             btn = MemoryButton(
