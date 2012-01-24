@@ -132,11 +132,12 @@ class MemoryLayout(GridLayout):
         
     def reset(self,newLevel):
         self.level=int(newLevel)
+        self.countdown = self.level
         #shuffle buttons
         if self.state =='OK':
-            self.first=None
-            self.countdown= self.level
-            self.elapsed=0
+            self.first = None
+            self.left = 0
+            self.elapsed = 0
             self.missed = 0
             self.hideButtons()
             self.state = ''
@@ -150,18 +151,20 @@ class MemoryLayout(GridLayout):
     def gameOver(self):
         
         # calculate score
-        score = 100./self.level + 100.*self.items + 100.*self.missed + 100./self.elapsed
+        score = 100./self.level + 100.*self.items - 10.*self.missed + 100./self.elapsed
         print "done!",score
 
         content = BoxLayout(orientation='vertical')
         content.add_widget(Label(text='score: %d'%int(score)))
-        
-        content.add_widget(Label(text='Initial Show time:'))
-        newLevel=Slider(min=0, max=30, value=DEFAULT_SHOWTIME)
-        
+        labelSlider = LabelTimeSlider(text='Initial Show time: %s s'%DEFAULT_SHOWTIME)
+        content.add_widget(labelSlider)
+
+        newLevel = Slider(min=1, max=30, value=DEFAULT_SHOWTIME)
+         
         content.add_widget(newLevel)
-        
-        newLevel.bind(value=self.reloadGame)
+        newLevel.bind(value = labelSlider.update)
+        newLevel.bind(value = self.reloadGame) 
+         
         self.reset(DEFAULT_SHOWTIME)
 
         #TODO: 
@@ -188,15 +191,13 @@ class PopupGameOver(Popup):
      def replay(self,inst):
          self.dismiss()
 
-
+class LabelTimeSlider(Label):
+    def update(self,instance,value):
+        self.text="Initial Show time: %d s"%value
 
 class MyPb(ProgressBar):
-    def __init__(self, **kwargs):
-        super(ProgressBar, self).__init__(**kwargs)
-        self.ml = kwargs['ml']
-    
     def foundAnItem(self,instance,value):
-        self.value += 100*self.ml.level
+        self.value = value
 
 class LabelScore(Label):
     def updateTime(self,instance,value):
@@ -205,8 +206,6 @@ class LabelScore(Label):
 class LabelMissed(Label):
     def update(self,instance,value):
         self.text="Missed: %d"%value
-
-
 
 def loadData():
     sounds={}
@@ -232,7 +231,7 @@ class MyAnimalsApp(App):
         
         sound = ToggleButton(text='Sound On', size_hint=(0.1,1))
         sound.bind(on_press=MemoryButton.toggleSound)
-        pb = MyPb(max=len(icons)*100*show, size_hint=(0.7,1),ml=g)
+        pb = MyPb(max=len(icons), size_hint=(0.7,1),ml=g)
         
         score = LabelScore(text="Time:  0 s",size_hint=(0.1,1))
         missed =  LabelMissed(text="Missed:  0",size_hint=(0.1,1))
