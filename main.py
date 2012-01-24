@@ -185,11 +185,27 @@ class MemoryLayout(GridLayout):
                               auto_dismiss=False)
         replay.bind(on_press=popup.replay)
         replay.bind(on_press=self.restartGame)
+        credits.bind(on_press=popup.credits)
         popup.open()
 
 class PopupGameOver(Popup):
      def replay(self,inst):
          self.dismiss()
+     
+     def credits(self,inst):
+         f=open("credits",'r')
+         c=Label(text=f.read(),size_hint=(1,.9)) 
+         f.close()
+         content = BoxLayout(orientation='vertical')
+         close = Button(text='Close',size_hint=(1,.1))
+         content.add_widget(c)
+         content.add_widget(close)
+
+         popup = Popup(title='Credits:',
+                       content=content, auto_dismiss=False
+                       ) 
+         close.bind(on_press=popup.dismiss)
+         popup.open()
 
 class LabelTimeSlider(Label):
     def update(self,instance,value):
@@ -231,12 +247,13 @@ class MyAnimalsApp(App):
         
         sound = ToggleButton(text='Sound On', size_hint=(0.1,1))
         sound.bind(on_press=MemoryButton.toggleSound)
+
         pb = MyPb(max=len(icons), size_hint=(0.7,1),ml=g)
         
         score = LabelScore(text="Time:  0 s",size_hint=(0.1,1))
         missed =  LabelMissed(text="Missed:  0",size_hint=(0.1,1))
         
-        
+    
         config.add_widget(pb)
         config.add_widget(score)
         config.add_widget(missed)
@@ -261,7 +278,6 @@ class MyAnimalsApp(App):
                 )  
             g.add_widget(btn)
 
-       
         root=FloatLayout()
         root.add_widget(playZone)
         Clock.schedule_interval(g.initialCountdown,1)
