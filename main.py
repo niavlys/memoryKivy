@@ -351,7 +351,6 @@ class MyAnimalsApp(App):
         shuffle(iicons)
         for i in iicons:
             s = i.split(".png")[0].split('/')[1]
-            print "eee",s
             if sounds.has_key(s):
                 aSound = choice(sounds[s])
             else:
