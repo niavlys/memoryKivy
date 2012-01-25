@@ -1,3 +1,14 @@
+"""
+Copyright (c) 2012, Sylvain Alborini
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+    Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+    Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+"""
 
 import kivy
 kivy.require('1.0.9')
@@ -12,6 +23,7 @@ from kivy.uix.slider import Slider
 from kivy.uix.togglebutton import ToggleButton
 from kivy.core.audio import SoundLoader
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.scrollview import ScrollView
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.animation import Animation
@@ -22,6 +34,29 @@ from glob import glob
 from os.path import dirname, join, basename
 
 DEFAULT_SHOWTIME = 10
+DEFAULT_NBITEMS = 12
+MAX_NBITEMS = None
+
+
+def bestRatio(nb,width,height):
+    row=1
+    correctRatio=float(width)/float(height)
+    nbparrow = nb/row
+    if nb%row !=0:
+        nbparrow+=1
+    x = float(width)/nbparrow
+    y = float(height)/row
+    ratio=x/y
+    print ratio
+    while ratio<correctRatio:
+        row+=1
+        nbparrow = nb/row
+        if nb%row !=0:
+            nbparrow+=1
+        x = float(width)/nbparrow
+        y = float(height)/row
+        ratio=x/y
+    return row
 
 class MemoryButton(Button):
     done=False
@@ -95,7 +130,7 @@ class MemoryLayout(GridLayout):
         self.state = ""
         self.first=None
         self.level=kwargs["level"]
-        self.items=self.cols*2
+        self.items=kwargs["items"]
         self.countdown= self.level
 
     def toggleButtons(self,state):
@@ -112,7 +147,6 @@ class MemoryLayout(GridLayout):
         for i in self.children:
             i.background_normal = i.background
             
-    
     def elapsedTime(self,dt):
         self.elapsed += dt
         
@@ -120,56 +154,86 @@ class MemoryLayout(GridLayout):
         if self.countdown == -1:
             Clock.unschedule(self.initialCountdown)
             self.toggleButtons("OK")
-            Clock.schedule_interval(self.elapsedTime,0.1)
+            Clock.schedule_interval(self.elapsedTime,0.1)  
         else:
             popup=Label(text=str(self.countdown))
             self.parent.parent.add_widget(popup)
             Animation(color=(1,1,1,0),font_size=150).start(popup)
             self.countdown -= 1
 
-    def reloadGame(self,instance,newLevel):
-        self.reset(newLevel)
-        
-    def reset(self,newLevel):
+    def resetTime(self,instance,newLevel):
         self.level=int(newLevel)
+
+    def resetNbItem(self,instance,newNb):
+        self.items = int(newNb)
+
+    def reset(self):
         self.countdown = self.level
-        #shuffle buttons
-        if self.state =='OK':
-            self.first = None
-            self.left = 0
-            self.elapsed = 0
-            self.missed = 0
-            self.hideButtons()
-            self.state = ''
-            shuffle(self.children)
+        self.first = None
+        self.left = 0
+        self.elapsed = 0
+        self.missed = 0
+        self.hideButtons()
+        self.state = ''
+        self.updateNbItems()
  
     def restartGame(self,inst):
+        self.reset()
         self.showButtons()
         Clock.schedule_interval(self.initialCountdown,1)
 
+    def updateNbItems(self):
+        if self.items != len(self.children):
+            #update self.rows to keep acceptable ratio
+            newRow = bestRatio(self.items*2,self.width,self.height)
+
+            self.clear_widgets()
+            self.rows=newRow
+            shuffle(icons)
+            iicons=icons[:self.items]
+            iicons=iicons+iicons
+            shuffle(iicons)
+            for i in iicons:
+                s = i.split("_")[0].split('/')[1]
+                if sounds.has_key(s):
+                    aSound = choice(sounds[s])
+                else:
+                    aSound = sounds['default'][0]
+
+                btn = MemoryButton(
+                    text="",
+                    filenameIcon=i,
+                    filenameSound=aSound,
+                    )  
+                self.add_widget(btn)
+        else:
+            shuffle(self.children)
+
         
     def gameOver(self):
-        
         # calculate score
         score = 100./self.level + 100.*self.items - 10.*self.missed + 100./self.elapsed
         print "done!",score
 
         content = BoxLayout(orientation='vertical')
         content.add_widget(Label(text='score: %d'%int(score)))
-        labelSlider = LabelTimeSlider(text='Initial Show time: %s s'%DEFAULT_SHOWTIME)
-        content.add_widget(labelSlider)
 
-        newLevel = Slider(min=1, max=30, value=DEFAULT_SHOWTIME)
-         
+        #change show time
+        labelSlider = LabelTimeSlider(text='Initial Show time: %s s'%self.level)
+        content.add_widget(labelSlider)
+        newLevel = Slider(min=1, max=30, value=self.level)
         content.add_widget(newLevel)
         newLevel.bind(value = labelSlider.update)
-        newLevel.bind(value = self.reloadGame) 
-         
-        self.reset(DEFAULT_SHOWTIME)
+        newLevel.bind(value = self.resetTime) 
 
-        #TODO: 
-        #content.add_widget(Label(text='Number of items:'))
-        #content.add_widget(Slider(min=0, max=30, value=DEFAULT_SHOWTIME))
+
+        #change number of items
+        labelNb = LabelNb(text='Number of items: %s'%self.items)
+        content.add_widget(labelNb)
+        nb_items = Slider(min=5, max = MAX_NBITEMS, value = self.items )
+        content.add_widget(nb_items)
+        nb_items.bind(value = labelNb.update)
+        nb_items.bind(value = self.resetNbItem)
        
         replay = Button(text='Replay!')
         credits = Button(text='Credits')
@@ -194,14 +258,17 @@ class PopupGameOver(Popup):
      
      def credits(self,inst):
          f=open("credits",'r')
-         c=Label(text=f.read(),size_hint=(1,.9)) 
+         c=Label(text=f.read(), text_size=(self.parent.width, None),size_hint=(1,.9)) 
          f.close()
          content = BoxLayout(orientation='vertical')
          close = Button(text='Close',size_hint=(1,.1))
          content.add_widget(c)
          content.add_widget(close)
-
+         #root = ScrollView(size_hint=(None, None), size=(400, 400))
+         #root.add_widget(content)
+         
          popup = Popup(title='Credits:',
+                       #content=root, auto_dismiss=False
                        content=content, auto_dismiss=False
                        ) 
          close.bind(on_press=popup.dismiss)
@@ -209,11 +276,19 @@ class PopupGameOver(Popup):
 
 class LabelTimeSlider(Label):
     def update(self,instance,value):
-        self.text="Initial Show time: %d s"%value
+        self.text="Initial Show time: %d s"%int(value)
+
+class LabelNb(Label):
+    def update(self,instance,value):
+        self.text="Number of items: %d"%int(value)
 
 class MyPb(ProgressBar):
     def foundAnItem(self,instance,value):
         self.value = value
+
+    def newNbItems(self,instance,value):
+        self.max = value
+    
 
 class LabelScore(Label):
     def updateTime(self,instance,value):
@@ -232,28 +307,29 @@ def loadData():
             sounds[name].append(s)
         else:
             sounds[name]=[s]
-    for i in glob(join(dirname(__file__),"icons", '*.gif')):
+    for i in glob(join(dirname(__file__),"icons", '*.png')):
         icons.append(i)
     return sounds,icons
 
 class MyAnimalsApp(App):
 
     def build(self):
+        global sounds,icons
         sounds,icons=loadData()
         show = DEFAULT_SHOWTIME
-
-        g = MemoryLayout(cols=len(icons)/2, level=show,size_hint=(1,.9))
+        global MAX_NBITEMS
+        MAX_NBITEMS = len(icons)
+        g = MemoryLayout(rows=4,items = DEFAULT_NBITEMS, level=show,size_hint=(1,.9))
         config = BoxLayout(orientation='horizontal',spacing=10, size_hint=(1,.1))
         
         sound = ToggleButton(text='Sound On', size_hint=(0.1,1))
         sound.bind(on_press=MemoryButton.toggleSound)
 
-        pb = MyPb(max=len(icons), size_hint=(0.7,1),ml=g)
+        pb = MyPb(max=DEFAULT_NBITEMS, size_hint=(0.7,1),ml=g)
         
         score = LabelScore(text="Time:  0 s",size_hint=(0.1,1))
         missed =  LabelMissed(text="Missed:  0",size_hint=(0.1,1))
         
-    
         config.add_widget(pb)
         config.add_widget(score)
         config.add_widget(missed)
@@ -262,15 +338,24 @@ class MyAnimalsApp(App):
         g.bind(missed=missed.update)     
         g.bind(elapsed=score.updateTime)        
         g.bind(left=pb.foundAnItem)
+        g.bind(items=pb.newNbItems)
 
         playZone = BoxLayout(orientation='vertical')
         playZone.add_widget(g)
         playZone.add_widget(config)
-        
-        icons=icons+icons
+        #select DEFAULT_NBITEMS
         shuffle(icons)
-        for i in icons:
-            aSound = choice(sounds[i.split("_")[0].split('/')[1]])
+        iicons=icons[:DEFAULT_NBITEMS]
+
+        iicons=iicons+iicons
+        #shuffle(iicons)
+        for i in iicons:
+            s = i.split("_")[0].split('/')[1]
+            if sounds.has_key(s):
+                aSound = choice(sounds[s])
+            else:
+                aSound = sounds['default'][0]
+
             btn = MemoryButton(
                 text="",
                 filenameIcon=i,
