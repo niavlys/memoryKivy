@@ -348,9 +348,10 @@ class MyAnimalsApp(App):
         iicons=icons[:DEFAULT_NBITEMS]
 
         iicons=iicons+iicons
-        #shuffle(iicons)
+        shuffle(iicons)
         for i in iicons:
-            s = i.split("_")[0].split('/')[1]
+            s = i.split(".png")[0].split('/')[1]
+            print "eee",s
             if sounds.has_key(s):
                 aSound = choice(sounds[s])
             else:
