@@ -194,7 +194,7 @@ class MemoryLayout(GridLayout):
             iicons=iicons+iicons
             shuffle(iicons)
             for i in iicons:
-                s = i.split("_")[0].split('/')[1]
+                s = i.split(".png")[0].split('/')[1]
                 if sounds.has_key(s):
                     aSound = choice(sounds[s])
                 else:
@@ -311,11 +311,21 @@ def loadData():
         icons.append(i)
     return sounds,icons
 
+def showmissingSounds():
+    missing=[]
+    for i in icons:
+        s = i.split(".png")[0].split('/')[1]
+        if not sounds.has_key(s):
+            missing.append(s)
+    print "missing sounds for %d animals: %s"%(len(missing),missing)
+ 
+
 class MyAnimalsApp(App):
 
     def build(self):
         global sounds,icons
         sounds,icons=loadData()
+        showmissingSounds()
         show = DEFAULT_SHOWTIME
         global MAX_NBITEMS
         MAX_NBITEMS = len(icons)
