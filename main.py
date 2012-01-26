@@ -326,7 +326,7 @@ class MyAnimalsApp(App):
     def build(self):
         global sounds,icons
         sounds,icons=loadData()
-        showmissingSounds()
+        #showmissingSounds()
         show = DEFAULT_SHOWTIME
         global MAX_NBITEMS
         MAX_NBITEMS = len(icons)
