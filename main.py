@@ -287,6 +287,7 @@ class MyPb(ProgressBar):
         self.value = value
 
     def newNbItems(self,instance,value):
+        self.value = value
         self.max = value
     
 
