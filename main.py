@@ -215,8 +215,8 @@ class MemoryLayout(GridLayout):
         score = 100./self.level + 100.*self.items - 10.*self.missed + 100./self.elapsed
         print "done!",score
 
-        content = BoxLayout(orientation='vertical')
-        content.add_widget(Label(text='score: %d'%int(score)))
+        content = BoxLayout(orientation='vertical',spacing=10)
+        #content.add_widget(Label(text='score: %d'%int(score)))
 
         #change show time
         labelSlider = LabelTimeSlider(text='Initial Show time: %s s'%self.level)
@@ -243,7 +243,7 @@ class MemoryLayout(GridLayout):
         content.add_widget(action)
 
 
-        popup = PopupGameOver(title='Game Over!',
+        popup = PopupGameOver(title='Congratulations! your score: %d'%int(score),
                               content=content,
                               size_hint=(0.5, 0.5),pos_hint={'x':0.25, 'y':0.25},
                               auto_dismiss=False)
@@ -258,7 +258,7 @@ class PopupGameOver(Popup):
      
      def credits(self,inst):
          f=open("credits",'r')
-         c=Label(text=f.read(), text_size=(self.parent.width, None),size_hint=(1,.9)) 
+         c=Label(text=f.read(), text_size=(self.parent.width-20, None),size_hint=(1,.9)) 
          f.close()
          content = BoxLayout(orientation='vertical')
          close = Button(text='Close',size_hint=(1,.1))
