@@ -375,6 +375,7 @@ class MyAnimalsApp(App):
             g.add_widget(btn)
 
         root=FloatLayout()
+        root.add_widget(Image(source='Jungle_Background_-_by-vectorjungle.jpg',allow_stretch=True,keep_ratio=False))
         root.add_widget(playZone)
         Clock.schedule_interval(g.initialCountdown,1)
         return root
