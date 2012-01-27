@@ -20,6 +20,7 @@ from kivy.uix.button import Button
 from kivy.uix.popup import Popup
 from kivy.uix.label import Label
 from kivy.uix.slider import Slider
+from kivy.uix.scatter import Scatter
 from kivy.uix.togglebutton import ToggleButton
 from kivy.core.audio import SoundLoader
 from kivy.uix.gridlayout import GridLayout
@@ -258,7 +259,7 @@ class PopupGameOver(Popup):
      
      def credits(self,inst):
          f=open("credits",'r')
-         c=Label(text=f.read(), text_size=(self.parent.width-20, None),size_hint=(1,.9)) 
+         c=Label(text=f.read(), text_size=(self.parent.width-20, None),size_hint=(1,.9),shorten=True) 
          f.close()
          content = BoxLayout(orientation='vertical')
          close = Button(text='Close',size_hint=(1,.1))
