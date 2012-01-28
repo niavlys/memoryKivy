@@ -41,14 +41,15 @@ MAX_NBITEMS = None
 
 def bestRatio(nb,width,height):
     row=1
-    correctRatio=float(width)/float(height)
+    correctRatio=1.
+    minErr=None
     nbparrow = nb/row
     if nb%row !=0:
         nbparrow+=1
     x = float(width)/nbparrow
     y = float(height)/row
     ratio=x/y
-    print ratio
+    minErr=abs(ratio-correctRatio)
     while ratio<correctRatio:
         row+=1
         nbparrow = nb/row
@@ -57,6 +58,9 @@ def bestRatio(nb,width,height):
         x = float(width)/nbparrow
         y = float(height)/row
         ratio=x/y
+        if abs(ratio-correctRatio)>minErr:
+            row-=1
+        minErr = abs(ratio-correctRatio)
     return row
 
 class MemoryButton(Button):
@@ -155,10 +159,16 @@ class MemoryLayout(GridLayout):
         if self.countdown == -1:
             Clock.unschedule(self.initialCountdown)
             self.toggleButtons("OK")
-            Clock.schedule_interval(self.elapsedTime,0.1)  
+            Clock.schedule_interval(self.elapsedTime,0.1)
         else:
-            popup=Label(text=str(self.countdown))
-            self.parent.parent.add_widget(popup)
+            if not hasattr(self.parent.parent,'countdown'):
+                self.parent.parent.countdown=Label(text="")
+                self.parent.parent.add_widget(self.parent.parent.countdown)
+            popup=self.parent.parent.countdown
+            popup.text=''
+            popup.font_size=12
+            popup.color=(0,0,0,1)
+            popup.text=str(self.countdown)
             Animation(color=(1,1,1,0),font_size=150).start(popup)
             self.countdown -= 1
 
@@ -216,9 +226,9 @@ class MemoryLayout(GridLayout):
         score = 100./self.level + 100.*self.items - 10.*self.missed + 100./self.elapsed
         print "done!",score
 
-        content = BoxLayout(orientation='vertical',spacing=10)
+        content2 = BoxLayout(orientation='vertical',spacing=10)
         #content.add_widget(Label(text='score: %d'%int(score)))
-
+        content = BoxLayout(orientation='vertical',size_hint_y=.7)
         #change show time
         labelSlider = LabelTimeSlider(text='Initial Show time: %s s'%self.level)
         content.add_widget(labelSlider)
@@ -236,16 +246,18 @@ class MemoryLayout(GridLayout):
         nb_items.bind(value = labelNb.update)
         nb_items.bind(value = self.resetNbItem)
        
+        content2.add_widget(content)
+
         replay = Button(text='Replay!')
         credits = Button(text='Credits')
-        action = BoxLayout(orientation='horizontal')
+        action = BoxLayout(orientation='horizontal',size_hint_y=.3)
         action.add_widget(replay)
         action.add_widget(credits)
-        content.add_widget(action)
+        content2.add_widget(action)
 
 
         popup = PopupGameOver(title='Congratulations! your score: %d'%int(score),
-                              content=content,
+                              content=content2,
                               size_hint=(0.5, 0.5),pos_hint={'x':0.25, 'y':0.25},
                               auto_dismiss=False)
         replay.bind(on_press=popup.replay)
