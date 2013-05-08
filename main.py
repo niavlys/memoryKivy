@@ -328,7 +328,7 @@ def loadData():
 def showmissingSounds():
     missing=[]
     for i in icons:
-        s = i.split(".png")[0].split('/')[1]
+        s = i.split(".png")[0].split(sep)[1]
         if not sounds.has_key(s):
             missing.append(s)
     print "missing sounds for %d animals: %s"%(len(missing),missing)
@@ -374,7 +374,7 @@ class MyAnimalsApp(App):
         iicons=iicons+iicons
         shuffle(iicons)
         for i in iicons:
-            s = i.split(".png")[0].split('/')[1]
+            s = i.split(".png")[0].split(sep)[1]
             if sounds.has_key(s):
                 aSound = choice(sounds[s])
             else:
