@@ -32,7 +32,7 @@ from kivy.properties import StringProperty, ObjectProperty,NumericProperty
 from kivy.uix.progressbar import ProgressBar
 from random import choice,shuffle
 from glob import glob
-from os.path import dirname, join, basename,sep
+from os.path import dirname, join, basename, sep
 
 DEFAULT_SHOWTIME = 10
 DEFAULT_NBITEMS = 12
@@ -374,7 +374,7 @@ class MyAnimalsApp(App):
         iicons=iicons+iicons
         shuffle(iicons)
         for i in iicons:
-            s = i.split(".png")[0].split('/')[1]
+            s = i.split(".png")[0].split(sep)[1]
             if sounds.has_key(s):
                 aSound = choice(sounds[s])
             else:
