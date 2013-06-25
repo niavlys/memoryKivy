@@ -32,7 +32,7 @@ from kivy.properties import StringProperty, ObjectProperty,NumericProperty
 from kivy.uix.progressbar import ProgressBar
 from random import choice,shuffle
 from glob import glob
-from os.path import dirname, join, basename,sep
+from os.path import dirname, join, basename, sep
 
 DEFAULT_SHOWTIME = 10
 DEFAULT_NBITEMS = 12
