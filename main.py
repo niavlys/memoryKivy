@@ -270,7 +270,7 @@ class PopupGameOver(Popup):
          self.dismiss()
      
      def credits(self,inst):
-         f=open("credits",'r')
+         f = open(dirname(__file__) + sep + 'credits','r')
          c=Label(text=f.read(), text_size=(self.parent.width-20, None),size_hint=(1,.9),shorten=True) 
          f.close()
          content = BoxLayout(orientation='vertical')
