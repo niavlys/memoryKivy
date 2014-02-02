@@ -33,6 +33,8 @@ from kivy.uix.progressbar import ProgressBar
 from random import choice,shuffle
 from glob import glob
 from os.path import dirname, join, basename,sep
+import json
+from kivy.core.window import Window
 
 DEFAULT_SHOWTIME = 10
 DEFAULT_NBITEMS = 12
@@ -154,6 +156,10 @@ class MemoryLayout(GridLayout):
             
     def elapsedTime(self,dt):
         self.elapsed += dt
+
+    def startGame(self,dt):
+        self.reset()
+        Clock.schedule_interval(self.initialCountdown,1)
         
     def initialCountdown(self,dt):
         if self.countdown == -1:
@@ -197,7 +203,6 @@ class MemoryLayout(GridLayout):
         if self.items != len(self.children):
             #update self.rows to keep acceptable ratio
             newRow = bestRatio(self.items*2,self.width,self.height)
-
             self.clear_widgets()
             self.rows=newRow
             shuffle(icons)
@@ -220,12 +225,18 @@ class MemoryLayout(GridLayout):
         else:
             shuffle(self.children)
 
-        
+
+    def saveLevel(self):
+        fileName =  join(App.get_running_app().user_data_dir,'level.dat')
+        with open(fileName,'w') as fd:
+            userData={"items":self.items,"level":self.level}
+            json.dump(userData,fd)
+            
     def gameOver(self):
         # calculate score
         score = 100./self.level + 100.*self.items - 10.*self.missed + 100./self.elapsed
         print "done!",score
-
+        self.saveLevel()
         content2 = BoxLayout(orientation='vertical',spacing=10)
         #content.add_widget(Label(text='score: %d'%int(score)))
         content = BoxLayout(orientation='vertical',size_hint_y=.7)
@@ -265,27 +276,53 @@ class MemoryLayout(GridLayout):
         credits.bind(on_press=popup.credits)
         popup.open()
 
+class ScrollableLabel(ScrollView):
+   
+    '''
+   use it thisly -> scrollablelabel = ScrollableLabel().build("put your big bunch of text right here")
+       or
+   ScrollableLabel().build() <- thusly with no argument to just get a very big bunch of text as a demo
+   
+   scrolls x and y default
+   '''
+ 
+    def build(self,textinput,size):
+        self.summary_label = Label(text="",text_size=(size,None),
+                              size_hint_y=None,size_hint_x=None)
+       
+        self.summary_label.bind(texture_size=self._set_summary_height)
+        # remove the above bind
+        self.summary_label.text = str(textinput)
+       
+        #and try setting height in the following line
+        self.sv = ScrollView(do_scroll_x=False)
+        # it does not scroll the scroll view.
+       
+        self.sv.add_widget(self.summary_label)
+       
+        return self.sv
+   
+    def _set_summary_height(self, instance, size):
+        instance.height = size[1]
+        instance.width = size[0]
+       
 class PopupGameOver(Popup):
-     def replay(self,inst):
-         self.dismiss()
+    def replay(self,inst):
+        self.dismiss()
      
-     def credits(self,inst):
-         f = open(dirname(__file__) + sep + 'credits','r')
-         c=Label(text=f.read(), text_size=(self.parent.width-20, None),size_hint=(1,.9),shorten=True) 
-         f.close()
-         content = BoxLayout(orientation='vertical')
-         close = Button(text='Close',size_hint=(1,.1))
-         content.add_widget(c)
-         content.add_widget(close)
-         #root = ScrollView(size_hint=(None, None), size=(400, 400))
-         #root.add_widget(content)
-         
-         popup = Popup(title='Credits:',
-                       #content=root, auto_dismiss=False
-                       content=content, auto_dismiss=False
-                       ) 
-         close.bind(on_press=popup.dismiss)
-         popup.open()
+    def credits(self,inst):
+        with open(join(dirname(__file__),'credits'),'r') as f:
+            ti=f.read()
+        content = BoxLayout(orientation='vertical')
+        close = Button(text='Close',size_hint=(1,.1))
+        sv = ScrollableLabel().build(ti,Window.width-20)
+        content.add_widget(sv)
+        content.add_widget(close)
+        popup = Popup(title='Credits:',
+                        content=content, auto_dismiss=False
+                    ) 
+        close.bind(on_press=popup.dismiss)
+        popup.open()
 
 class LabelTimeSlider(Label):
     def update(self,instance,value):
@@ -335,24 +372,37 @@ def showmissingSounds():
  
 
 class MyAnimalsApp(App):
-
+    
+    def loadLevel(self):
+        fileName =  join(App.get_running_app().user_data_dir,'level.dat')
+        try:
+            with open(fileName) as fd:
+                userData={}
+                userData = json.load(fd)
+                return userData["items"],userData["level"]
+        except:
+            return DEFAULT_NBITEMS , DEFAULT_SHOWTIME
+        
     def build(self):
+        self.icon = 'memoIcon.png'
+        self.title = 'Kivy Memory'
         global sounds,icons
         sounds,icons=loadData()
         #showmissingSounds()
-        show = DEFAULT_SHOWTIME
+
         global MAX_NBITEMS
         MAX_NBITEMS = len(icons)
-        g = MemoryLayout(rows=4,items = DEFAULT_NBITEMS, level=show,size_hint=(1,.9))
+        items,level = self.loadLevel()
+        g = MemoryLayout(rows=4,items = items, level=level,size_hint=(1,.9))
         config = BoxLayout(orientation='horizontal',spacing=10, size_hint=(1,.1))
         
-        sound = ToggleButton(text='Sound On', size_hint=(0.1,1))
+        sound = ToggleButton(text='Sound On', size_hint=(0.15,1))
         sound.bind(on_press=MemoryButton.toggleSound)
 
-        pb = MyPb(max=DEFAULT_NBITEMS, size_hint=(0.7,1),ml=g)
+        pb = MyPb(max=items, size_hint=(0.55,1),ml=g)
         
-        score = LabelScore(text="Time:  0 s",size_hint=(0.1,1))
-        missed =  LabelMissed(text="Missed:  0",size_hint=(0.1,1))
+        score = LabelScore(text="Time:  0 s",size_hint=(0.15,1))
+        missed =  LabelMissed(text="Missed:  0",size_hint=(0.15,1))
         
         config.add_widget(pb)
         config.add_widget(score)
@@ -367,30 +417,12 @@ class MyAnimalsApp(App):
         playZone = BoxLayout(orientation='vertical')
         playZone.add_widget(g)
         playZone.add_widget(config)
-        #select DEFAULT_NBITEMS
-        shuffle(icons)
-        iicons=icons[:DEFAULT_NBITEMS]
-
-        iicons=iicons+iicons
-        shuffle(iicons)
-        for i in iicons:
-            s = i.split(".png")[0].split(sep)[1]
-            if sounds.has_key(s):
-                aSound = choice(sounds[s])
-            else:
-                aSound = sounds['default'][0]
-
-            btn = MemoryButton(
-                text="",
-                filenameIcon=i,
-                filenameSound=aSound,
-                )  
-            g.add_widget(btn)
-
+        
         root=FloatLayout()
         root.add_widget(Image(source='Jungle_Background_-_by-vectorjungle.jpg',allow_stretch=True,keep_ratio=False))
         root.add_widget(playZone)
-        Clock.schedule_interval(g.initialCountdown,1)
+        #Clock.schedule_interval(g.initialCountdown,1)
+        Clock.schedule_once(g.startGame,3)
         return root
 
 if __name__ in ('__main__', '__android__'):
