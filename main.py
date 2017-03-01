@@ -102,7 +102,7 @@ class MemoryButton(Button):
                 if self is self.parent.first:
                     self.parent.first==None
                 elif self.parent.first.filenameIcon == self.filenameIcon:
-                    print "youhou!!"
+                    print("youhou!!")
                     self.parent.left+=1
                     if self.playsound:
                         if self.sound.status != 'stop':
@@ -211,7 +211,7 @@ class MemoryLayout(GridLayout):
             shuffle(iicons)
             for i in iicons:
                 s = i.split(".png")[0].split(sep)[1]
-                if sounds.has_key(s):
+                if s in sounds:
                     aSound = choice(sounds[s])
                 else:
                     aSound = sounds['default'][0]
@@ -235,7 +235,7 @@ class MemoryLayout(GridLayout):
     def gameOver(self):
         # calculate score
         score = 100./self.level + 100.*self.items - 10.*self.missed + 100./self.elapsed
-        print "done!",score
+        print("done!",score)
         self.saveLevel()
         content2 = BoxLayout(orientation='vertical',spacing=10)
         #content.add_widget(Label(text='score: %d'%int(score)))
@@ -354,7 +354,7 @@ def loadData():
     icons=[]
     for s in glob(join(dirname(__file__),"sounds", '*.wav')):
         name=basename(s[:-4]).split("_")[0]
-        if sounds.has_key(name):
+        if name in sounds:
             sounds[name].append(s)
         else:
             sounds[name]=[s]
@@ -366,9 +366,9 @@ def showmissingSounds():
     missing=[]
     for i in icons:
         s = i.split(".png")[0].split(sep)[1]
-        if not sounds.has_key(s):
+        if not s in sounds:
             missing.append(s)
-    print "missing sounds for %d animals: %s"%(len(missing),missing)
+    print("missing sounds for %d animals: %s"%(len(missing),missing))
  
 
 class MyAnimalsApp(App):
