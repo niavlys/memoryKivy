@@ -11,5 +11,3 @@ to [Threes by Asher Vollmer.](http://asherv.com/threes/).
 
 This implementation use only Kivy framework, and can be played on mobile with
 swipes or desktop with keyboard.
-
-![Screenshot](/screenshot.png)
