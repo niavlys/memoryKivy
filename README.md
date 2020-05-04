@@ -18,5 +18,4 @@ available on Google play:
 [![memoryKivy with Kivy](https://developer.android.com/images/brand/en_generic_rgb_wo_45.png)](http://tx0.org/6za)
 
 
-http://tx0.org/6za
 swipes or desktop with keyboard.
