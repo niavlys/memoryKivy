@@ -15,4 +15,7 @@ On Android:
 
 available on Google play:
 
-http://tx0.org/6za
+[![memoryKivy with Kivy](https://developer.android.com/images/brand/en_generic_rgb_wo_45.png)](http://tx0.org/6za)
+
+
+swipes or desktop with keyboard.
