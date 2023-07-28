@@ -399,7 +399,7 @@ class MyAnimalsApp(App):
         sound = ToggleButton(text='Sound On', size_hint=(0.15,1))
         sound.bind(on_press=MemoryButton.toggleSound)
 
-        pb = MyPb(max=items, size_hint=(0.55,1),ml=g)
+        pb = MyPb(max=items, size_hint=(0.55,1))
         
         score = LabelScore(text="Time:  0 s",size_hint=(0.15,1))
         missed =  LabelMissed(text="Missed:  0",size_hint=(0.15,1))
